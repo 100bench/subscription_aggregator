@@ -168,7 +168,6 @@ func (p *PgxStorage) GetTotalCostByPeriod(ctx context.Context, userID string, se
 		log.Printf("ERROR: invalid end date format %s: %v", endDateStr, err)
 		return 0, fmt.Errorf("invalid end date format: %w", err)
 	}
-	// Adjust endDate to the end of the month
 	endDate = endDate.AddDate(0, 1, -1)
 
 	var q string

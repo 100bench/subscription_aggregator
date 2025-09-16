@@ -28,7 +28,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
+	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/http-swagger v1.3.4 // indirect
 	github.com/swaggo/swag v1.8.1 // indirect
 	golang.org/x/crypto v0.37.0 // indirect

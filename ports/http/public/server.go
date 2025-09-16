@@ -40,6 +40,17 @@ func (s *HttpServer) setupRoutes() {
 	s.router.HandleFunc("/subscriptions/{userID}/total_cost", s.handleGetTotalSubscriptionCost()).Methods("GET")
 }
 
+// handleCreateSubscription godoc
+// @Summary Create a new subscription
+// @Description Creates a new subscription for a user
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscription body pkg.CreateSubRequest true "Subscription object to be created"
+// @Success 200 {object} pkg.SubscriptionDTO
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions [post]
 func (s *HttpServer) handleCreateSubscription() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("INFO: [HTTP] Received CreateSubscription request from %s", r.RemoteAddr)
@@ -67,6 +78,17 @@ func (s *HttpServer) handleCreateSubscription() http.HandlerFunc {
 	}
 }
 
+// handleGetSubscription godoc
+// @Summary Get a subscription by user ID and service name
+// @Description Retrieves a single subscription based on user ID and service name
+// @Tags subscriptions
+// @Produce json
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Success 200 {object} pkg.SubscriptionDTO
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [get]
 func (s *HttpServer) handleGetSubscription() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -96,6 +118,15 @@ func (s *HttpServer) handleGetSubscription() http.HandlerFunc {
 	}
 }
 
+// handleGetAllSubscriptions godoc
+// @Summary Get all subscriptions for a user
+// @Description Retrieves all subscriptions associated with a given user ID
+// @Tags subscriptions
+// @Produce json
+// @Param userID path string true "User ID"
+// @Success 200 {object} pkg.GetSubsResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID} [get]
 func (s *HttpServer) handleGetAllSubscriptions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -119,6 +150,20 @@ func (s *HttpServer) handleGetAllSubscriptions() http.HandlerFunc {
 	}
 }
 
+// handleUpdateSubscription godoc
+// @Summary Update an existing subscription
+// @Description Updates an existing subscription identified by user ID and service name
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Param subscription body pkg.UpdateSubRequest true "Subscription object to be updated"
+// @Success 200 {object} pkg.SubscriptionDTO
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [put]
 func (s *HttpServer) handleUpdateSubscription() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -155,6 +200,16 @@ func (s *HttpServer) handleUpdateSubscription() http.HandlerFunc {
 	}
 }
 
+// handleDeleteSubscription godoc
+// @Summary Delete a subscription
+// @Description Deletes a subscription based on user ID and service name
+// @Tags subscriptions
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Success 204 "No Content"
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [delete]
 func (s *HttpServer) handleDeleteSubscription() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -178,6 +233,19 @@ func (s *HttpServer) handleDeleteSubscription() http.HandlerFunc {
 	}
 }
 
+// handleGetTotalSubscriptionCost godoc
+// @Summary Get total cost of subscriptions
+// @Description Retrieves the total cost of subscriptions for a user within a specified period, with optional service name filter
+// @Tags subscriptions
+// @Produce json
+// @Param userID path string true "User ID"
+// @Param start_date query string true "Start date of the period (YYYY-MM)"
+// @Param end_date query string true "End date of the period (YYYY-MM)"
+// @Param service_name query string false "Optional service name to filter by"
+// @Success 200 {object} pkg.GetTotalCostResponse
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/total_cost [get]
 func (s *HttpServer) handleGetTotalSubscriptionCost() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)

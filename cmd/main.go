@@ -1,3 +1,8 @@
+// @Subscription Aggregator API
+// @version 1.0
+// @description REST API for aggregating user subscriptions
+// @host localhost:8080
+// @BasePath /
 package main
 
 import (
@@ -14,20 +19,21 @@ import (
 	"github.com/100bench/subscription_aggregator/internal/adapters/storage/postgres"
 	"github.com/100bench/subscription_aggregator/internal/cases"
 	"github.com/100bench/subscription_aggregator/internal/ports/http/public"
+
+	_ "github.com/100bench/subscription_aggregator/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// Initialize PostgreSQL
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	// Apply database migrations
 	m, err := migrate.New(
-		"file://migrations", // Path to your migration files
+		"file://migrations",
 		dbURL)
 	if err != nil {
 		log.Fatalf("failed to create migrate instance: %v", errors.Wrap(err, "migrate.New"))
@@ -43,18 +49,18 @@ func main() {
 	}
 	defer storage.Close()
 
-	// Initialize Subscription Service
 	subscriptionService := cases.NewSubscriptionService(storage)
 
-	// Set up HTTP server
 	httpServer := public.NewHttpServer(subscriptionService)
+	r := httpServer.GetRouter()
 
-	// Start HTTP server
+	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	addr := ":" + port
 	log.Printf("Server listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, httpServer.GetRouter()))
+	log.Fatal(http.ListenAndServe(addr, r))
 }
