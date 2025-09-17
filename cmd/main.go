@@ -49,7 +49,10 @@ func main() {
 	}
 	defer storage.Close()
 
-	subscriptionService := cases.NewSubscriptionService(storage)
+	subscriptionService, err := cases.NewServiceProvider(storage)
+	if err != nil{
+		log.Fatalf("failed to create subscription service: %v", err)
+	}
 
 	httpServer, err := public.NewServer(subscriptionService)
 	if err != nil {

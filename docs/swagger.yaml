@@ -79,7 +79,7 @@ paths:
       - application/json
       description: Creates a new subscription for a user
       parameters:
-      - description: Subscription object to be created
+      - description: Subscription
         in: body
         name: subscription
         required: true
@@ -88,8 +88,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/pkg.SubscriptionDTO'
         "400":
@@ -105,7 +105,6 @@ paths:
       - subscriptions
   /subscriptions/{userID}:
     get:
-      description: Retrieves all subscriptions associated with a given user ID
       parameters:
       - description: User ID
         in: path
@@ -128,7 +127,6 @@ paths:
       - subscriptions
   /subscriptions/{userID}/{serviceName}:
     delete:
-      description: Deletes a subscription based on user ID and service name
       parameters:
       - description: User ID
         in: path
@@ -155,7 +153,7 @@ paths:
       tags:
       - subscriptions
     get:
-      description: Retrieves a single subscription based on user ID and service name
+      description: Get subscription by user ID and service name
       parameters:
       - description: User ID
         in: path
@@ -182,14 +180,13 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.ErrorResponse'
-      summary: Get a subscription by user ID and service name
+      summary: Get a subscription
       tags:
       - subscriptions
     put:
       consumes:
       - application/json
-      description: Updates an existing subscription identified by user ID and service
-        name
+      description: Update by user ID and service name
       parameters:
       - description: User ID
         in: path
@@ -201,7 +198,7 @@ paths:
         name: serviceName
         required: true
         type: string
-      - description: Subscription object to be updated
+      - description: Update payload
         in: body
         name: subscription
         required: true
@@ -226,30 +223,30 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.ErrorResponse'
-      summary: Update an existing subscription
+      summary: Update a subscription
       tags:
       - subscriptions
-  /subscriptions/{userID}/total_cost:
+  /subscriptions/total-cost:
     get:
-      description: Retrieves the total cost of subscriptions for a user within a specified
-        period, with optional service name filter
+      description: Returns total subscription cost for a user in period; service filter
+        optional
       parameters:
       - description: User ID
-        in: path
-        name: userID
+        in: query
+        name: user_id
         required: true
         type: string
-      - description: Start date of the period (MM-YYYY)
+      - description: Start date MM-YYYY
         in: query
         name: start_date
         required: true
         type: string
-      - description: End date of the period (MM-YYYY)
+      - description: End date MM-YYYY
         in: query
         name: end_date
         required: true
         type: string
-      - description: Optional service name to filter by
+      - description: Service name
         in: query
         name: service_name
         type: string
@@ -268,7 +265,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.ErrorResponse'
-      summary: Get total cost of subscriptions
+      summary: Get total cost by period
       tags:
       - subscriptions
 swagger: "2.0"

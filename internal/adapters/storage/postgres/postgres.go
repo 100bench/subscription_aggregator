@@ -115,23 +115,25 @@ func (p *PgxStorage) GetListSubs(ctx context.Context, userId string) ([]en.Subsc
 	return subscriptions, nil
 }
 
-func (p *PgxStorage) UpdateSub(ctx context.Context, sub en.Subscription) error {
-	log.Printf("INFO: UpdateSub for user %s, service %s", sub.UserID, sub.ServiceName)
+func (p *PgxStorage) UpdateSub(ctx context.Context, userID, serviceName string, price *int, startDate *string, endDate *string) error {
+	log.Printf("INFO: UpdateSub for user %s, service %s", userID, serviceName)
 	const q = `
-		UPDATE subscriptions
-		SET price = $3, start_date = $4, end_date = $5
-		WHERE user_id = $1 AND service_name = $2
-	`
-	commandTag, err := p.pool.Exec(ctx, q, sub.UserID, sub.ServiceName, sub.Price, sub.StartDate, sub.EndDate)
+        UPDATE subscriptions
+        SET price = COALESCE($3, price),
+            start_date = COALESCE($4, start_date),
+            end_date = COALESCE($5, end_date)
+        WHERE user_id = $1 AND service_name = $2
+    `
+	commandTag, err := p.pool.Exec(ctx, q, userID, serviceName, price, startDate, endDate)
 	if err != nil {
-		log.Printf("ERROR: failed to update subscription for user %s, service %s: %v", sub.UserID, sub.ServiceName, err)
+		log.Printf("ERROR: failed to update subscription for user %s, service %s: %v", userID, serviceName, err)
 		return errors.Wrap(err, "PgxStorage.UpdateSub")
 	}
 	if commandTag.RowsAffected() == 0 {
-		log.Printf("WARN: Subscription not found for update for user %s, service %s", sub.UserID, sub.ServiceName)
+		log.Printf("WARN: Subscription not found for update for user %s, service %s", userID, serviceName)
 		return errors.Wrap(en.ErrSubscriptionNotFound, "PgxStorage.UpdateSub")
 	}
-	log.Printf("INFO: Subscription updated for user %s, service %s", sub.UserID, sub.ServiceName)
+	log.Printf("INFO: Subscription updated for user %s, service %s", userID, serviceName)
 	return nil
 }
 
@@ -155,45 +157,57 @@ func (p *PgxStorage) DeleteSub(ctx context.Context, userID, serviceName string) 
 }
 
 func (p *PgxStorage) GetTotalByPeriod(ctx context.Context, userID string, serviceName string, startDateStr, endDateStr string) (int, error) {
-	log.Printf("INFO: GetTotalCostByPeriod requested for user %s, service %s, from %s to %s", userID, serviceName, startDateStr, endDateStr)
+	log.Printf("INFO: GetTotalByPeriod input userID=%s service=%q start=%s end=%s", userID, serviceName, startDateStr, endDateStr)
 
-	startDate, err := time.Parse("2006-01", startDateStr)
+	startDate, err := time.Parse("01-2006", startDateStr)
 	if err != nil {
-		log.Printf("ERROR: invalid start date format %s: %v", startDateStr, err)
-		return 0, fmt.Errorf("invalid start date format: %w", err)
+		log.Printf("ERROR: parse start_date=%s (want MM-YYYY): %v", startDateStr, err)
+		return 0, fmt.Errorf("invalid start date format (MM-YYYY): %w", err)
+	}
+	endDate, err := time.Parse("01-2006", endDateStr)
+	if err != nil {
+		log.Printf("ERROR: parse end_date=%s (want MM-YYYY): %v", endDateStr, err)
+		return 0, fmt.Errorf("invalid end date format (MM-YYYY): %w", err)
 	}
 
-	endDate, err := time.Parse("2006-01", endDateStr)
-	if err != nil {
-		log.Printf("ERROR: invalid end date format %s: %v", endDateStr, err)
-		return 0, fmt.Errorf("invalid end date format: %w", err)
-	}
-	endDate = endDate.AddDate(0, 1, -1)
+	// Нормализуем конец периода на конец месяца для наглядности логов
+	endDateLastDay := endDate.AddDate(0, 1, -1)
+	log.Printf("DEBUG: normalized period start=%s end=%s(end-of-month=%s)", startDate.Format(time.RFC3339), endDate.Format(time.RFC3339), endDateLastDay.Format(time.RFC3339))
 
-	var q string
-	var args []interface{}
+	var (
+		q    string
+		args []interface{}
+	)
 
 	if serviceName != "" {
 		q = `
-			SELECT COALESCE(SUM(price), 0) FROM subscriptions
-			WHERE user_id = $1 AND service_name = $2 AND start_date >= $3 AND start_date <= $4
+			SELECT COALESCE(SUM(price), 0) AS total
+			FROM subscriptions
+			WHERE user_id = $1
+			  AND service_name = $2
+			  AND to_date(start_date, 'MM-YYYY') >= $3::date
+			  AND to_date(start_date, 'MM-YYYY') <= $4::date
 		`
 		args = []interface{}{userID, serviceName, startDate, endDate}
 	} else {
 		q = `
-			SELECT COALESCE(SUM(price), 0) FROM subscriptions
-			WHERE user_id = $1 AND start_date >= $2 AND start_date <= $3
+			SELECT COALESCE(SUM(price), 0) AS total
+			FROM subscriptions
+			WHERE user_id = $1
+			  AND to_date(start_date, 'MM-YYYY') >= $2::date
+			  AND to_date(start_date, 'MM-YYYY') <= $3::date
 		`
 		args = []interface{}{userID, startDate, endDate}
 	}
 
-	var totalCost int
-	err = p.pool.QueryRow(ctx, q, args...).Scan(&totalCost)
-	if err != nil {
-		log.Printf("ERROR: failed to get total cost from database for user %s: %v", userID, err)
-		return 0, errors.Wrap(err, "PgxStorage.GetTotalCostByPeriod")
+	log.Printf("DEBUG: SQL=%q args=%v", q, args)
+
+	var total int
+	if err := p.pool.QueryRow(ctx, q, args...).Scan(&total); err != nil {
+		log.Printf("ERROR: QueryRow failed userID=%s service=%q: %v", userID, serviceName, err)
+		return 0, errors.Wrap(err, "PgxStorage.GetTotalByPeriod")
 	}
 
-	log.Printf("INFO: Total cost for user %s is %d", userID, totalCost)
-	return totalCost, nil
+	log.Printf("INFO: GetTotalByPeriod result userID=%s service=%q total=%d", userID, serviceName, total)
+	return total, nil
 }

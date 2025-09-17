@@ -2,6 +2,7 @@ package cases
 
 import (
 	"context"
+
 	en "github.com/100bench/subscription_aggregator/internal/entities"
 	"github.com/pkg/errors"
 )
@@ -33,8 +34,8 @@ func (s *ServiceProvider) GetSubscription(ctx context.Context, userID string, se
 	return sub, nil
 }
 
-func (s *ServiceProvider) UpdateSubscription(ctx context.Context, userID string, serviceName string) error {
-	err := s.storage.UpdateSub(ctx, en.Subscription{UserID: userID, ServiceName: serviceName})
+func (s *ServiceProvider) UpdateSubscription(ctx context.Context, userID string, serviceName string, price *int, startDate *string, endDate *string) error {
+	err := s.storage.UpdateSub(ctx, userID, serviceName, price, startDate, endDate)
 	if err != nil {
 		return errors.Wrap(err, "storage.UpdateSub")
 	}

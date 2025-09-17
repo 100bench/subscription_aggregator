@@ -30,7 +30,7 @@ const docTemplate = `{
                 "summary": "Create a new subscription",
                 "parameters": [
                     {
-                        "description": "Subscription object to be created",
+                        "description": "Subscription",
                         "name": "subscription",
                         "in": "body",
                         "required": true,
@@ -40,8 +40,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/pkg.SubscriptionDTO"
                         }
@@ -61,9 +61,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/subscriptions/total-cost": {
+            "get": {
+                "description": "Returns total subscription cost for a user in period; service filter optional",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Get total cost by period",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date MM-YYYY",
+                        "name": "start_date",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date MM-YYYY",
+                        "name": "end_date",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service name",
+                        "name": "service_name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.GetTotalCostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/{userID}": {
             "get": {
-                "description": "Retrieves all subscriptions associated with a given user ID",
                 "produces": [
                     "application/json"
                 ],
@@ -96,77 +156,16 @@ const docTemplate = `{
                 }
             }
         },
-        "/subscriptions/{userID}/total_cost": {
-            "get": {
-                "description": "Retrieves the total cost of subscriptions for a user within a specified period, with optional service name filter",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subscriptions"
-                ],
-                "summary": "Get total cost of subscriptions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Start date of the period (MM-YYYY)",
-                        "name": "start_date",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End date of the period (MM-YYYY)",
-                        "name": "end_date",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional service name to filter by",
-                        "name": "service_name",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.GetTotalCostResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/subscriptions/{userID}/{serviceName}": {
             "get": {
-                "description": "Retrieves a single subscription based on user ID and service name",
+                "description": "Get subscription by user ID and service name",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "subscriptions"
                 ],
-                "summary": "Get a subscription by user ID and service name",
+                "summary": "Get a subscription",
                 "parameters": [
                     {
                         "type": "string",
@@ -205,7 +204,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates an existing subscription identified by user ID and service name",
+                "description": "Update by user ID and service name",
                 "consumes": [
                     "application/json"
                 ],
@@ -215,7 +214,7 @@ const docTemplate = `{
                 "tags": [
                     "subscriptions"
                 ],
-                "summary": "Update an existing subscription",
+                "summary": "Update a subscription",
                 "parameters": [
                     {
                         "type": "string",
@@ -232,7 +231,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Subscription object to be updated",
+                        "description": "Update payload",
                         "name": "subscription",
                         "in": "body",
                         "required": true,
@@ -269,7 +268,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a subscription based on user ID and service name",
                 "tags": [
                     "subscriptions"
                 ],
@@ -400,10 +398,6 @@ const docTemplate = `{
                 "price": {
                     "type": "integer",
                     "example": 500
-                },
-                "service_name": {
-                    "type": "string",
-                    "example": "Netflix"
                 },
                 "start_date": {
                     "type": "string",

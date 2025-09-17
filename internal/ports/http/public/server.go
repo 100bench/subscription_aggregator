@@ -41,29 +41,56 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/subscriptions/{userID}", s.handleGetAllSubscriptions)
 	s.router.Put("/subscriptions/{userID}/{serviceName}", s.handleUpdateSubscription)
 	s.router.Delete("/subscriptions/{userID}/{serviceName}", s.handleDeleteSubscription)
+	s.router.Get("/subscriptions/total-cost", s.handleGetTotalCost)
 }
 
+// @Summary Create a new subscription
+// @Description Creates a new subscription for a user
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscription body pkg.CreateSubRequest true "Subscription"
+// @Success 201 {object} pkg.SubscriptionDTO
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions [post]
 func (s *Server) handleCreateSubscription(w http.ResponseWriter, r *http.Request) {
 	var req pkg.CreateSubRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.respondWithError(w, http.StatusBadRequest, pkg.ErrorResponse{Error: err.Error()})
 		return
 	}
-
-	subDTO, err := s.service.CreateSubscription(r.Context(), req)
-	if err != nil {
+	sub := entities.Subscription{
+		ServiceName: req.ServiceName,
+		Price:       req.Price,
+		UserID:      req.UserId,
+		StartDate:   req.StartDate,
+		EndDate:     req.EndDate,
+	}
+	if err := s.service.CreateSubscription(r.Context(), sub); err != nil {
 		s.respondWithError(w, http.StatusInternalServerError, pkg.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	s.respondWithJSON(w, http.StatusOK, subDTO)
+	created := pkg.SubscriptionDTO(req)
+	s.respondWithJSON(w, http.StatusCreated, created)
 }
 
+// @Summary Get a subscription
+// @Description Get subscription by user ID and service name
+// @Tags subscriptions
+// @Produce json
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Success 200 {object} pkg.SubscriptionDTO
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [get]
 func (s *Server) handleGetSubscription(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	serviceName := chi.URLParam(r, "serviceName")
 
-	subDTO, err := s.service.GetSubscription(r.Context(), userID, serviceName)
+	sub, err := s.service.GetSubscription(r.Context(), userID, serviceName)
 	if err != nil {
 		if errors.Is(err, entities.ErrSubscriptionNotFound) {
 			s.respondWithError(w, http.StatusNotFound, pkg.ErrorResponse{Error: err.Error()})
@@ -73,21 +100,58 @@ func (s *Server) handleGetSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.respondWithJSON(w, http.StatusOK, subDTO)
+	resp := pkg.SubscriptionDTO{
+		UserId:      sub.UserID,
+		ServiceName: sub.ServiceName,
+		Price:       sub.Price,
+		StartDate:   sub.StartDate,
+		EndDate:     sub.EndDate,
+	}
+	s.respondWithJSON(w, http.StatusOK, resp)
 }
 
+// @Summary Get all subscriptions for a user
+// @Tags subscriptions
+// @Produce json
+// @Param userID path string true "User ID"
+// @Success 200 {object} pkg.GetSubsResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID} [get]
 func (s *Server) handleGetAllSubscriptions(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 
-	resp, err := s.service.GetAllSubscriptions(r.Context(), userID)
+	subs, err := s.service.GetListSubscriptions(r.Context(), userID)
 	if err != nil {
 		s.respondWithError(w, http.StatusInternalServerError, pkg.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	s.respondWithJSON(w, http.StatusOK, resp)
+	list := make([]pkg.SubscriptionDTO, 0, len(subs))
+	for _, ssub := range subs {
+		list = append(list, pkg.SubscriptionDTO{
+			UserId:      ssub.UserID,
+			ServiceName: ssub.ServiceName,
+			Price:       ssub.Price,
+			StartDate:   ssub.StartDate,
+			EndDate:     ssub.EndDate,
+		})
+	}
+	s.respondWithJSON(w, http.StatusOK, pkg.GetSubsResponse{Subscriptions: list})
 }
 
+// @Summary Update a subscription
+// @Description Update by user ID and service name
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Param subscription body pkg.UpdateSubRequest true "Update payload"
+// @Success 200 {object} pkg.SubscriptionDTO
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [put]
 func (s *Server) handleUpdateSubscription(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	serviceName := chi.URLParam(r, "serviceName")
@@ -98,8 +162,7 @@ func (s *Server) handleUpdateSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	subDTO, err := s.service.UpdateSubscription(r.Context(), userID, serviceName, req)
-	if err != nil {
+	if err := s.service.UpdateSubscription(r.Context(), userID, serviceName, req.Price, req.StartDate, req.EndDate); err != nil {
 		if errors.Is(err, entities.ErrSubscriptionNotFound) {
 			s.respondWithError(w, http.StatusNotFound, pkg.ErrorResponse{Error: err.Error()})
 			return
@@ -108,9 +171,30 @@ func (s *Server) handleUpdateSubscription(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.respondWithJSON(w, http.StatusOK, subDTO)
+	// Optionally return the updated subscription state
+	sub, err := s.service.GetSubscription(r.Context(), userID, serviceName)
+	if err != nil {
+		s.respondWithError(w, http.StatusInternalServerError, pkg.ErrorResponse{Error: err.Error()})
+		return
+	}
+	resp := pkg.SubscriptionDTO{
+		UserId:      sub.UserID,
+		ServiceName: sub.ServiceName,
+		Price:       sub.Price,
+		StartDate:   sub.StartDate,
+		EndDate:     sub.EndDate,
+	}
+	s.respondWithJSON(w, http.StatusOK, resp)
 }
 
+// @Summary Delete a subscription
+// @Tags subscriptions
+// @Param userID path string true "User ID"
+// @Param serviceName path string true "Service Name"
+// @Success 204
+// @Failure 404 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/{userID}/{serviceName} [delete]
 func (s *Server) handleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	serviceName := chi.URLParam(r, "serviceName")
@@ -125,6 +209,39 @@ func (s *Server) handleDeleteSubscription(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary Get total cost by period
+// @Description Returns total subscription cost for a user in period; service filter optional
+// @Tags subscriptions
+// @Produce json
+// @Param user_id query string true "User ID"
+// @Param start_date query string true "Start date MM-YYYY"
+// @Param end_date query string true "End date MM-YYYY"
+// @Param service_name query string false "Service name"
+// @Success 200 {object} pkg.GetTotalCostResponse
+// @Failure 400 {object} pkg.ErrorResponse
+// @Failure 500 {object} pkg.ErrorResponse
+// @Router /subscriptions/total-cost [get]
+func (s *Server) handleGetTotalCost(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	userID := q.Get("user_id")
+	startDate := q.Get("start_date")
+	endDate := q.Get("end_date")
+	serviceName := q.Get("service_name")
+
+	if userID == "" || startDate == "" || endDate == "" {
+		s.respondWithError(w, http.StatusBadRequest, pkg.ErrorResponse{Error: "missing required query params: user_id, start_date, end_date"})
+		return
+	}
+
+	total, err := s.service.GetTotalCostByPeriod(r.Context(), userID, serviceName, startDate, endDate)
+	if err != nil {
+		s.respondWithError(w, http.StatusInternalServerError, pkg.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	s.respondWithJSON(w, http.StatusOK, pkg.GetTotalCostResponse{TotalCost: total})
 }
 
 func (s *Server) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
