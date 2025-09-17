@@ -46,15 +46,10 @@ func (s *serviceProvider) CreateSubscription(ctx context.Context, req pkg.Create
 
 func (s *serviceProvider) GetSubscription(ctx context.Context, userID, serviceName string) (pkg.SubscriptionDTO, error) {
 	log.Printf("INFO: GetSubscription requested for user %s, service %s", userID, serviceName)
-	sub, err := s.repo.GetSub(ctx, userID)
+	sub, err := s.repo.GetSub(ctx, userID, serviceName)
 	if err != nil {
 		log.Printf("ERROR: failed to get subscription for user %s, service %s: %v", userID, serviceName, err)
 		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to get subscription: %w", err)
-	}
-
-	if sub.ServiceName != serviceName {
-		log.Printf("WARN: Service name mismatch for user %s. Expected %s, got %s", userID, serviceName, sub.ServiceName)
-		return pkg.SubscriptionDTO{}, en.ErrSubscriptionNotFound
 	}
 
 	log.Printf("INFO: Subscription retrieved for user %s, service %s", userID, serviceName)
@@ -92,15 +87,10 @@ func (s *serviceProvider) GetAllSubscriptions(ctx context.Context, userID string
 
 func (s *serviceProvider) UpdateSubscription(ctx context.Context, userID, serviceName string, req pkg.UpdateSubRequest) (pkg.SubscriptionDTO, error) {
 	log.Printf("INFO: UpdateSubscription requested for user %s, service %s", userID, serviceName)
-	sub, err := s.repo.GetSub(ctx, userID)
+	sub, err := s.repo.GetSub(ctx, userID, serviceName)
 	if err != nil {
 		log.Printf("ERROR: failed to get subscription for update for user %s, service %s: %v", userID, serviceName, err)
 		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to get subscription for update: %w", err)
-	}
-
-	if sub.ServiceName != serviceName {
-		log.Printf("WARN: Service name mismatch during update for user %s. Expected %s, got %s", userID, serviceName, sub.ServiceName)
-		return pkg.SubscriptionDTO{}, en.ErrSubscriptionNotFound
 	}
 
 	if req.ServiceName != nil {
@@ -133,18 +123,13 @@ func (s *serviceProvider) UpdateSubscription(ctx context.Context, userID, servic
 
 func (s *serviceProvider) DeleteSubscription(ctx context.Context, userID, serviceName string) error {
 	log.Printf("INFO: DeleteSubscription requested for user %s, service %s", userID, serviceName)
-	sub, err := s.repo.GetSub(ctx, userID)
+	_, err := s.repo.GetSub(ctx, userID, serviceName)
 	if err != nil {
 		log.Printf("ERROR: failed to get subscription for delete for user %s, service %s: %v", userID, serviceName, err)
 		return fmt.Errorf("failed to get subscription for delete: %w", err)
 	}
 
-	if sub.ServiceName != serviceName {
-		log.Printf("WARN: Service name mismatch during delete for user %s. Expected %s, got %s", userID, serviceName, sub.ServiceName)
-		return en.ErrSubscriptionNotFound
-	}
-
-	if err := s.repo.DeleteSub(ctx, userID); err != nil {
+	if err := s.repo.DeleteSub(ctx, userID, serviceName); err != nil {
 		log.Printf("ERROR: failed to delete subscription for user %s, service %s: %v", userID, serviceName, err)
 		return fmt.Errorf("failed to delete subscription: %w", err)
 	}

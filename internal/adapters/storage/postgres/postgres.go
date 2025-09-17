@@ -53,14 +53,14 @@ func (p *PgxStorage) CreateSub(ctx context.Context, sub en.Subscription) error {
 	return nil
 }
 
-func (p *PgxStorage) GetSub(ctx context.Context, userID string) (en.Subscription, error) {
-	log.Printf("INFO: GetSub for user %s", userID)
+func (p *PgxStorage) GetSub(ctx context.Context, userID, serviceName string) (en.Subscription, error) {
+	log.Printf("INFO: GetSub for user %s, service %s", userID, serviceName)
 	const q = `
 		SELECT user_id, service_name, price, start_date, end_date FROM subscriptions
-		WHERE user_id = $1
+		WHERE user_id = $1 AND service_name = $2
 	`
 	var sub en.Subscription
-	err := p.pool.QueryRow(ctx, q, userID).Scan(
+	err := p.pool.QueryRow(ctx, q, userID, serviceName).Scan(
 		&sub.UserID,
 		&sub.ServiceName,
 		&sub.Price,
@@ -69,13 +69,13 @@ func (p *PgxStorage) GetSub(ctx context.Context, userID string) (en.Subscription
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("WARN: Subscription not found for user %s: %v", userID, err)
+			log.Printf("WARN: Subscription not found for user %s, service %s: %v", userID, serviceName, err)
 			return en.Subscription{}, errors.Wrap(en.ErrSubscriptionNotFound, "PgxStorage.GetSub")
 		}
-		log.Printf("ERROR: failed to get subscription for user %s: %v", userID, err)
+		log.Printf("ERROR: failed to get subscription for user %s, service %s: %v", userID, serviceName, err)
 		return en.Subscription{}, errors.Wrap(err, "PgxStorage.GetSub")
 	}
-	log.Printf("INFO: Subscription retrieved for user %s, service %s", userID, sub.ServiceName)
+	log.Printf("INFO: Subscription retrieved for user %s, service %s", userID, serviceName)
 	return sub, nil
 }
 
@@ -135,22 +135,22 @@ func (p *PgxStorage) UpdateSub(ctx context.Context, sub en.Subscription) error {
 	return nil
 }
 
-func (p *PgxStorage) DeleteSub(ctx context.Context, userID string) error {
-	log.Printf("INFO: DeleteSub for user %s", userID)
+func (p *PgxStorage) DeleteSub(ctx context.Context, userID, serviceName string) error {
+	log.Printf("INFO: DeleteSub for user %s, service %s", userID, serviceName)
 	const q = `
 		DELETE FROM subscriptions
-		WHERE user_id = $1
+		WHERE user_id = $1 AND service_name = $2
 	`
-	commandTag, err := p.pool.Exec(ctx, q, userID)
+	commandTag, err := p.pool.Exec(ctx, q, userID, serviceName)
 	if err != nil {
-		log.Printf("ERROR: failed to delete subscription for user %s: %v", userID, err)
+		log.Printf("ERROR: failed to delete subscription for user %s, service %s: %v", userID, serviceName, err)
 		return errors.Wrap(err, "PgxStorage.DeleteSub")
 	}
 	if commandTag.RowsAffected() == 0 {
-		log.Printf("WARN: Subscription not found for delete for user %s", userID)
+		log.Printf("WARN: Subscription not found for delete for user %s, service %s", userID, serviceName)
 		return errors.Wrap(en.ErrSubscriptionNotFound, "PgxStorage.DeleteSub")
 	}
-	log.Printf("INFO: Subscription deleted for user %s", userID)
+	log.Printf("INFO: Subscription deleted for user %s, service %s", userID, serviceName)
 	return nil
 }
 
@@ -168,7 +168,6 @@ func (p *PgxStorage) GetTotalCostByPeriod(ctx context.Context, userID string, se
 		log.Printf("ERROR: invalid end date format %s: %v", endDateStr, err)
 		return 0, fmt.Errorf("invalid end date format: %w", err)
 	}
-	// Adjust endDate to the end of the month
 	endDate = endDate.AddDate(0, 1, -1)
 
 	var q string
