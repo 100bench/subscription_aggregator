@@ -239,8 +239,8 @@ func (s *HttpServer) handleDeleteSubscription() http.HandlerFunc {
 // @Tags subscriptions
 // @Produce json
 // @Param userID path string true "User ID"
-// @Param start_date query string true "Start date of the period (YYYY-MM)"
-// @Param end_date query string true "End date of the period (YYYY-MM)"
+// @Param start_date query string true "Start date of the period (MM-YYYY)"
+// @Param end_date query string true "End date of the period (MM-YYYY)"
 // @Param service_name query string false "Optional service name to filter by"
 // @Success 200 {object} pkg.GetTotalCostResponse
 // @Failure 400 {object} pkg.ErrorResponse
