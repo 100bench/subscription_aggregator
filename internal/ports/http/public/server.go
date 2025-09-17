@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/100bench/subscription_aggregator/internal/cases"
 	"github.com/100bench/subscription_aggregator/internal/entities"
 	pkg "github.com/100bench/subscription_aggregator/pkg/dto"
 	"github.com/go-chi/chi/v5"
@@ -13,11 +12,11 @@ import (
 )
 
 type Server struct {
-	service cases.SubscriptionService
+	service PublicService
 	router  *chi.Mux
 }
 
-func NewServer(service cases.SubscriptionService) (*Server, error) {
+func NewServer(service PublicService) (*Server, error) {
 	if service == nil {
 		return nil, errors.Wrap(entities.ErrNilDependency, "public server service")
 	}

@@ -154,7 +154,7 @@ func (p *PgxStorage) DeleteSub(ctx context.Context, userID, serviceName string) 
 	return nil
 }
 
-func (p *PgxStorage) GetTotalCostByPeriod(ctx context.Context, userID string, serviceName string, startDateStr, endDateStr string) (int, error) {
+func (p *PgxStorage) GetTotalByPeriod(ctx context.Context, userID string, serviceName string, startDateStr, endDateStr string) (int, error) {
 	log.Printf("INFO: GetTotalCostByPeriod requested for user %s, service %s, from %s to %s", userID, serviceName, startDateStr, endDateStr)
 
 	startDate, err := time.Parse("2006-01", startDateStr)

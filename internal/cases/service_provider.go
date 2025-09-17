@@ -2,150 +2,65 @@ package cases
 
 import (
 	"context"
-	"fmt"
-	"log"
-
 	en "github.com/100bench/subscription_aggregator/internal/entities"
-	pkg "github.com/100bench/subscription_aggregator/pkg/dto"
+	"github.com/pkg/errors"
 )
 
-type serviceProvider struct {
-	repo SubscriptionRepository
+type ServiceProvider struct {
+	storage SubRepository
 }
 
-func NewSubscriptionService(repo SubscriptionRepository) SubscriptionService {
-	return &serviceProvider{
-		repo: repo,
+func NewServiceProvider(storage SubRepository) (*ServiceProvider, error) {
+	if storage == nil {
+		return nil, errors.Wrap(en.ErrNilDependency, "storage")
 	}
+	return &ServiceProvider{storage}, nil
 }
 
-func (s *serviceProvider) CreateSubscription(ctx context.Context, req pkg.CreateSubRequest) (pkg.SubscriptionDTO, error) {
-	log.Printf("INFO: CreateSubscription requested for user %s, service %s", req.UserId, req.ServiceName)
-	sub := en.Subscription{
-		UserID:      req.UserId,
-		ServiceName: req.ServiceName,
-		Price:       req.Price,
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
-	}
-
-	if err := s.repo.CreateSub(ctx, sub); err != nil {
-		log.Printf("ERROR: failed to create subscription for user %s, service %s: %v", req.UserId, req.ServiceName, err)
-		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to create subscription: %w", err)
-	}
-
-	log.Printf("INFO: Subscription created successfully for user %s, service %s", req.UserId, req.ServiceName)
-	return pkg.SubscriptionDTO{
-		UserId:      sub.UserID,
-		ServiceName: sub.ServiceName,
-		Price:       sub.Price,
-		StartDate:   sub.StartDate,
-		EndDate:     sub.EndDate,
-	}, nil
-}
-
-func (s *serviceProvider) GetSubscription(ctx context.Context, userID, serviceName string) (pkg.SubscriptionDTO, error) {
-	log.Printf("INFO: GetSubscription requested for user %s, service %s", userID, serviceName)
-	sub, err := s.repo.GetSub(ctx, userID, serviceName)
+func (s *ServiceProvider) CreateSubscription(ctx context.Context, subscription en.Subscription) error {
+	err := s.storage.CreateSub(ctx, subscription)
 	if err != nil {
-		log.Printf("ERROR: failed to get subscription for user %s, service %s: %v", userID, serviceName, err)
-		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to get subscription: %w", err)
+		return errors.Wrap(err, "storage.CreateSub")
 	}
-
-	log.Printf("INFO: Subscription retrieved for user %s, service %s", userID, serviceName)
-	return pkg.SubscriptionDTO{
-		UserId:      sub.UserID,
-		ServiceName: sub.ServiceName,
-		Price:       sub.Price,
-		StartDate:   sub.StartDate,
-		EndDate:     sub.EndDate,
-	}, nil
-}
-
-func (s *serviceProvider) GetAllSubscriptions(ctx context.Context, userID string) (pkg.GetSubsResponse, error) {
-	log.Printf("INFO: GetAllSubscriptions requested for user %s", userID)
-	subs, err := s.repo.GetListSubs(ctx, userID)
-	if err != nil {
-		log.Printf("ERROR: failed to get all subscriptions for user %s: %v", userID, err)
-		return pkg.GetSubsResponse{}, fmt.Errorf("failed to get all subscriptions: %w", err)
-	}
-
-	var dtos []pkg.SubscriptionDTO
-	for _, sub := range subs {
-		dtos = append(dtos, pkg.SubscriptionDTO{
-			UserId:      sub.UserID,
-			ServiceName: sub.ServiceName,
-			Price:       sub.Price,
-			StartDate:   sub.StartDate,
-			EndDate:     sub.EndDate,
-		})
-	}
-
-	log.Printf("INFO: Retrieved %d subscriptions for user %s", len(dtos), userID)
-	return pkg.GetSubsResponse{Subscriptions: dtos}, nil
-}
-
-func (s *serviceProvider) UpdateSubscription(ctx context.Context, userID, serviceName string, req pkg.UpdateSubRequest) (pkg.SubscriptionDTO, error) {
-	log.Printf("INFO: UpdateSubscription requested for user %s, service %s", userID, serviceName)
-	sub, err := s.repo.GetSub(ctx, userID, serviceName)
-	if err != nil {
-		log.Printf("ERROR: failed to get subscription for update for user %s, service %s: %v", userID, serviceName, err)
-		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to get subscription for update: %w", err)
-	}
-
-	// Service name is considered an identifier and must match the path value.
-	// We intentionally ignore any service_name provided in the request body
-	// to avoid accidental changes that would break the lookup key.
-	if req.Price != nil {
-		sub.Price = *req.Price
-	}
-	if req.StartDate != nil {
-		sub.StartDate = *req.StartDate
-	}
-	if req.EndDate != nil {
-		sub.EndDate = *req.EndDate
-	}
-
-	if err := s.repo.UpdateSub(ctx, sub); err != nil {
-		log.Printf("ERROR: failed to update subscription for user %s, service %s: %v", userID, serviceName, err)
-		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to update subscription: %w", err)
-	}
-
-	log.Printf("INFO: Subscription updated successfully for user %s, service %s", userID, serviceName)
-	return pkg.SubscriptionDTO{
-		UserId:      sub.UserID,
-		ServiceName: sub.ServiceName,
-		Price:       sub.Price,
-		StartDate:   sub.StartDate,
-		EndDate:     sub.EndDate,
-	}, nil
-}
-
-func (s *serviceProvider) DeleteSubscription(ctx context.Context, userID, serviceName string) error {
-	log.Printf("INFO: DeleteSubscription requested for user %s, service %s", userID, serviceName)
-	_, err := s.repo.GetSub(ctx, userID, serviceName)
-	if err != nil {
-		log.Printf("ERROR: failed to get subscription for delete for user %s, service %s: %v", userID, serviceName, err)
-		return fmt.Errorf("failed to get subscription for delete: %w", err)
-	}
-
-	if err := s.repo.DeleteSub(ctx, userID, serviceName); err != nil {
-		log.Printf("ERROR: failed to delete subscription for user %s, service %s: %v", userID, serviceName, err)
-		return fmt.Errorf("failed to delete subscription: %w", err)
-	}
-	log.Printf("INFO: Subscription deleted successfully for user %s, service %s", userID, serviceName)
 	return nil
 }
 
-func (s *serviceProvider) GetTotalSubscriptionCost(ctx context.Context, req pkg.GetTotalCostRequest) (pkg.GetTotalCostResponse, error) {
-	log.Printf("INFO: GetTotalSubscriptionCost requested for user %s, service %s, from %s to %s", req.UserId, *req.ServiceName, req.StartDate, req.EndDate)
-
-	totalCost, err := s.repo.GetTotalCostByPeriod(ctx, req.UserId, *req.ServiceName, req.StartDate, req.EndDate)
+func (s *ServiceProvider) GetSubscription(ctx context.Context, userID string, serviceName string) (en.Subscription, error) {
+	sub, err := s.storage.GetSub(ctx, userID, serviceName)
 	if err != nil {
-		log.Printf("ERROR: failed to get total subscription cost for user %s: %v", req.UserId, err)
-		return pkg.GetTotalCostResponse{}, fmt.Errorf("failed to get total subscription cost: %w", err)
+		return en.Subscription{}, errors.Wrap(err, "storage.GetSub")
 	}
+	return sub, nil
+}
 
-	log.Printf("INFO: Total subscription cost for user %s is %d", req.UserId, totalCost)
-	return pkg.GetTotalCostResponse{TotalCost: totalCost}, nil
+func (s *ServiceProvider) UpdateSubscription(ctx context.Context, userID string, serviceName string) error {
+	err := s.storage.UpdateSub(ctx, en.Subscription{UserID: userID, ServiceName: serviceName})
+	if err != nil {
+		return errors.Wrap(err, "storage.UpdateSub")
+	}
+	return nil
+}
+
+func (s *ServiceProvider) DeleteSubscription(ctx context.Context, userID string, serviceName string) error {
+	err := s.storage.DeleteSub(ctx, userID, serviceName)
+	if err != nil {
+		return errors.Wrap(err, "storage.DeleteSub")
+	}
+	return nil
+}
+
+func (s *ServiceProvider) GetListSubscriptions(ctx context.Context, userID string) ([]en.Subscription, error) {
+	subs, err := s.storage.GetListSubs(ctx, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "storage.GetListSubs")
+	}
+	return subs, nil
+}
+
+func (s *ServiceProvider) GetTotalCostByPeriod(ctx context.Context, userID string, serviceName string, startDate string, endDate string) (int, error) {
+	cost, err := s.storage.GetTotalByPeriod(ctx, userID, serviceName, startDate, endDate)
+	if err != nil {
+		return 0, errors.Wrap(err, "storage.GetTotalCostByPeriod")
+	}
+	return cost, nil
 }
