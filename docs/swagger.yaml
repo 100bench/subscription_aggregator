@@ -73,8 +73,7 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: This is a REST API for aggregating user subscriptions.
-  title: Subscription Aggregator API
+  description: REST API for aggregating user subscriptions
   version: "1.0"
 paths:
   /subscriptions:
@@ -243,12 +242,12 @@ paths:
         name: userID
         required: true
         type: string
-      - description: Start date of the period (YYYY-MM)
+      - description: Start date of the period (MM-YYYY)
         in: query
         name: start_date
         required: true
         type: string
-      - description: End date of the period (YYYY-MM)
+      - description: End date of the period (MM-YYYY)
         in: query
         name: end_date
         required: true

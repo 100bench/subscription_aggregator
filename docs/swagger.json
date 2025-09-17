@@ -1,8 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a REST API for aggregating user subscriptions.",
-        "title": "Subscription Aggregator API",
+        "description": "REST API for aggregating user subscriptions",
         "contact": {},
         "version": "1.0"
     },
@@ -110,14 +109,14 @@
                     },
                     {
                         "type": "string",
-                        "description": "Start date of the period (YYYY-MM)",
+                        "description": "Start date of the period (MM-YYYY)",
                         "name": "start_date",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "End date of the period (YYYY-MM)",
+                        "description": "End date of the period (MM-YYYY)",
                         "name": "end_date",
                         "in": "query",
                         "required": true

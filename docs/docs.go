@@ -116,14 +116,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Start date of the period (YYYY-MM)",
+                        "description": "Start date of the period (MM-YYYY)",
                         "name": "start_date",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "End date of the period (YYYY-MM)",
+                        "description": "End date of the period (MM-YYYY)",
                         "name": "end_date",
                         "in": "query",
                         "required": true
@@ -420,8 +420,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Subscription Aggregator API",
-	Description:      "This is a REST API for aggregating user subscriptions.",
+	Title:            "",
+	Description:      "REST API for aggregating user subscriptions",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
