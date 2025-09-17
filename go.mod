@@ -3,8 +3,8 @@ module github.com/100bench/subscription_aggregator
 go 1.24.3
 
 require (
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
-	github.com/gorilla/mux v1.8.1
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/pkg/errors v0.9.1
 	github.com/swaggo/http-swagger v1.3.4

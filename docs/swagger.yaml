@@ -63,9 +63,6 @@ definitions:
       price:
         example: 500
         type: integer
-      service_name:
-        example: Netflix
-        type: string
       start_date:
         example: 08-2025
         type: string

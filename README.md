@@ -39,7 +39,7 @@ cd subscribtion_agregator
 docker-compose up --build -d
 ```
 
-3. **API доступен на:** http://localhost:8080
+3. **API будет доступен на:** http://localhost:8080
 4. **Swagger UI:** http://localhost:8080/swagger/index.html
 
 ---

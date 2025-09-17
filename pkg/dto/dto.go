@@ -13,10 +13,9 @@ type GetSubsResponse struct {
 }
 
 type UpdateSubRequest struct {
-	ServiceName *string `json:"service_name,omitempty" example:"Netflix"`
-	Price       *int    `json:"price,omitempty" example:"500"`
-	StartDate   *string `json:"start_date,omitempty" example:"08-2025"`
-	EndDate     *string `json:"end_date,omitempty" example:"08-2026"`
+	Price     *int    `json:"price,omitempty" example:"500"`
+	StartDate *string `json:"start_date,omitempty" example:"08-2025"`
+	EndDate   *string `json:"end_date,omitempty" example:"08-2026"`
 }
 
 type CreateSubRequest struct {

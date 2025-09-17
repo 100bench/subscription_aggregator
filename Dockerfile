@@ -1,7 +1,9 @@
 # Сборка приложения
-FROM golang:1.24-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
+
+ENV GOTOOLCHAIN=auto
 
 COPY go.mod ./
 COPY go.sum ./
@@ -12,13 +14,10 @@ COPY . .
 # Сборка исполняемого файла
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
 
-# Финальный образ
-FROM alpine:3.20 AS production
+# Финальный образ (используем тот же golang:alpine, чтобы не тянуть alpine отдельно)
+FROM golang:1.22-alpine AS production
 
 WORKDIR /app
-
-# Установка зависимостей CA-сертификатов для HTTPS
-RUN apk update && apk add --no-cache ca-certificates
 
 # Копирование исполняемого файла из этапа сборки
 COPY --from=builder /app/main .

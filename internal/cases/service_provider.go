@@ -93,9 +93,9 @@ func (s *serviceProvider) UpdateSubscription(ctx context.Context, userID, servic
 		return pkg.SubscriptionDTO{}, fmt.Errorf("failed to get subscription for update: %w", err)
 	}
 
-	if req.ServiceName != nil {
-		sub.ServiceName = *req.ServiceName
-	}
+	// Service name is considered an identifier and must match the path value.
+	// We intentionally ignore any service_name provided in the request body
+	// to avoid accidental changes that would break the lookup key.
 	if req.Price != nil {
 		sub.Price = *req.Price
 	}

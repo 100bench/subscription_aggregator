@@ -51,10 +51,13 @@ func main() {
 
 	subscriptionService := cases.NewSubscriptionService(storage)
 
-	httpServer := public.NewHttpServer(subscriptionService)
+	httpServer, err := public.NewServer(subscriptionService)
+	if err != nil {
+		log.Fatalf("failed to init http server: %v", err)
+	}
 	r := httpServer.GetRouter()
 
-	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+	r.Handle("/swagger/*", httpSwagger.WrapHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
