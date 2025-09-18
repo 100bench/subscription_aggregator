@@ -30,7 +30,7 @@ REST API для управления подписками пользовател
 
 1. **Клонируйте репозиторий:**
 ```bash
-git clone github.com/100bench/subscription_aggregator.git
+git clone https://github.com/100bench/subscription_aggregator.git
 cd subscribtion_agregator
 ```
 
